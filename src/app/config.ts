@@ -12,6 +12,7 @@ import { getNavSortControlFromString, getSortByFromString } from '@/photo/sort';
 import { parseChromaCutoff, parseStartingHue } from '@/photo/color/sort';
 import { parseSocialKeysFromString } from '@/social';
 import { dependencies } from '../../package.json';
+import { normalizeRedisUrl } from '@/platforms/redis';
 
 // HARD-CODED GLOBAL CONFIGURATION
 
@@ -165,29 +166,10 @@ export const POSTGRES_SSL_ENABLED =
   process.env.DISABLE_POSTGRES_SSL === '1' ? false : true;
 
 // STORAGE: REDIS
-
-/**
- * Normalizes a Redis URL for use with @upstash/redis.
- *
- * The SDK requires an HTTPS REST URL, but some providers (e.g. Vercel KV)
- * supply a native `rediss://` protocol URL. This converts `rediss://` to
- * `https://` by extracting the hostname, so either format works.
- */
-const normalizeRedisRestUrl = (url: string | undefined): string | undefined => {
-  if (!url || !url.startsWith('rediss://')) return url;
-  try {
-    return `https://${new URL(url).hostname}`;
-  } catch {
-    return url;
-  }
-};
-
-// Priority: REST API first (native https://, preferred by @upstash/redis),
-// then rediss:// KV_URL (auto-normalized), then custom fallbacks.
-export const REDIS_URL = normalizeRedisRestUrl(
+export const REDIS_URL = normalizeRedisUrl(
+  process.env.KV_URL ||
   process.env.KV_REST_API_URL ||
   process.env.EXIF_KV_REST_API_URL ||
-  process.env.KV_URL ||
   process.env.UPSTASH_REDIS_REST_URL,
 );
 export const REDIS_TOKEN = (
